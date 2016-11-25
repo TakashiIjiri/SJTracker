@@ -127,33 +127,12 @@ int CSJTrackerView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	m_ogl.OnCreate( this );
 
-	//initialize all singletons
-	
-	m_topDir = BrowseForFolder(NULL, "select folder", "", "select folder1", 1);
-
-	int W,H,D, fNum;
-	TVec3 pitch;
-	short minV, maxV;
-	ImageManager   ::getInst()->initialize   ( m_topDir    );
-	ImageManager   ::getInst()->getResolution( W,H,D, fNum );
-	ImageManager   ::getInst()->getPitch     ( pitch       );
-	ImageManager   ::getInst()->getMinMaxV   ( minV, maxV  );
-	
-	AnalysisManager::getInst()->initialize  ( W,H,D,fNum, pitch);
-
 	m_dlg.Create( IDD_DIALOG_INFO );
-	m_dlg.initParams( W,H,D, fNum, pitch, minV, maxV );
-	m_dlg.ShowWindow( SW_SHOW );
 
-	m_ogl.SetClearColor(1,1,1,0.5);
-	m_ogl.SetCam( TVec3(W*pitch[0]/2, H*pitch[1]/2, D*pitch[2]*2.0  ), 
-		          TVec3(W*pitch[0]/2, H*pitch[1]/2, D*pitch[2]/2.0    ), TVec3(0,1,0) );
+	InitVolumeDefoult();
 
 
 
-	fprintf( stderr, "!!!!!!!!!!!!!!!!!!!! %d %d %d", W,H,D);
-	pitch.Trace();
-	fprintf( stderr, "!!!!!!!!!!!!!!!!!!!! %d %d %d", W,H,D);
 	return 0;
 }
 
@@ -311,4 +290,55 @@ BOOL CSJTrackerView::OnMouseWheel(UINT nFlags,short zDelta,CPoint pt)
 
 	MouseListener::getInst()->MouseWheel( nFlags, zDelta, point );
 	return CView::OnMouseWheel(nFlags,zDelta,pt);
+}
+
+
+
+
+
+void CSJTrackerView::InitVolumeDefoult()
+{
+	m_topDir = "";
+	ImageManager::getInst()->initializeDefoult( );
+	postInitialization();
+}
+
+void CSJTrackerView::InitVolumeByDcm2D()
+{
+	m_topDir = BrowseForFolder(NULL, "select folder", "", "select folder1", 1);
+	ImageManager::getInst()->initialize2DSlices( m_topDir    );
+	postInitialization();
+}
+
+
+
+void CSJTrackerView::InitVolumeByDcm3D()
+{
+	m_topDir = BrowseForFolder(NULL, "select folder", "", "select folder1", 1);
+	ImageManager::getInst()->initialize2DSlices( m_topDir    );
+	postInitialization();
+}
+
+
+void CSJTrackerView::postInitialization()
+{
+		int W,H,D, fNum;
+	TVec3 pitch;
+	short minV, maxV;
+	ImageManager   ::getInst()->getResolution( W,H,D, fNum );
+	ImageManager   ::getInst()->getPitch     ( pitch       );
+	ImageManager   ::getInst()->getMinMaxV   ( minV, maxV  );
+	
+	AnalysisManager::getInst()->initialize  ( W,H,D,fNum, pitch);
+
+	m_dlg.initParams( W,H,D, fNum, pitch, minV, maxV );
+	m_dlg.ShowWindow( SW_SHOW );
+
+	m_ogl.SetClearColor(1,1,1,0.5);
+	m_ogl.SetCam( TVec3(W*pitch[0]/2, H*pitch[1]/2, D*pitch[2]*2.0  ), 
+		          TVec3(W*pitch[0]/2, H*pitch[1]/2, D*pitch[2]/2.0    ), TVec3(0,1,0) );
+
+
+	fprintf( stderr, "init by defolt %d %d %d", W,H,D);
+	pitch.Trace();
 }

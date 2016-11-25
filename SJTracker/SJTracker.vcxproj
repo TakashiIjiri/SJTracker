@@ -172,7 +172,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <GenerateDebugInformation>Debug</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>./3rdParty/glew/lib/lib64;./3rdParty/dcmtkVC2015MT/staticlib;./3rdParty/opencvVC2015MT/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>

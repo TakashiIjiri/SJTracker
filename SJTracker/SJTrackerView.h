@@ -66,12 +66,16 @@ protected: // create from serialization only
 	TDlgInfo m_dlg;
 
 
+	void postInitialization();
 
 // Attributes
 public:
 
 	CString m_topDir;
 
+	void InitVolumeDefoult();
+	void InitVolumeByDcm2D();
+	void InitVolumeByDcm3D();
 
 	CSJTrackerDoc* GetDocument() const;
 

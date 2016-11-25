@@ -53,13 +53,17 @@
 #define IDC_EDIT_CPTRAJ_IDX             1035
 #define IDC_SPIN_CPTRAJ_IDX             1036
 #define IDC_BUTTON_START_TRACKING_ONEFRAME 1037
+#define ID_FILE_OPENDCM                 32771
+#define ID_FILE_OPENDCM32772            32772
+#define ID_FILE_OPENDCM_2D              32773
+#define ID_FILE_OPENDCM_3D              32774
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        313
-#define _APS_NEXT_COMMAND_VALUE         32771
+#define _APS_NEXT_COMMAND_VALUE         32775
 #define _APS_NEXT_CONTROL_VALUE         1022
 #define _APS_NEXT_SYMED_VALUE           310
 #endif

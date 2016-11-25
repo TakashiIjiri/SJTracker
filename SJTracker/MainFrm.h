@@ -79,6 +79,9 @@ public:
 protected:
 	DECLARE_MESSAGE_MAP()
 
+public:
+	afx_msg void OnFileOpendcm2d();
+	afx_msg void OnFileOpendcm3d();
 };
 
 
