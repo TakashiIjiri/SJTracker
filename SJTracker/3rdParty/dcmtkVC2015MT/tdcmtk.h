@@ -92,6 +92,10 @@ public:
 	bool getPixels_UInt16(const Uint16* &data);
 
 
+	//for multipage dcm
+	bool getPixelsTo3D_SInt16(Sint16* data);
+
+
 
 private:
     //DcmElement* getTagElem(DcmTagKey tagKey);

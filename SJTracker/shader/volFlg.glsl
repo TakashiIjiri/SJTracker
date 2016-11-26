@@ -13,7 +13,7 @@ vec3 calcGradDir(
         const float pivC      ,
         vec3        texCd     )
 {
-    float px = texture3D( vImg, texCd + texCdOfst.xww) - pivC;
+    float px = texture3D( vImg, texCd + texCdOfst.xww) - pivC + 0.01;
     float py = texture3D( vImg, texCd + texCdOfst.wxw) - pivC;
     float pz = texture3D( vImg, texCd + texCdOfst.wwx) - pivC;
     vec3 grad = vec3( px, py,pz );

@@ -6,6 +6,11 @@
 #include "SJTracker.h"
 
 #include "MainFrm.h"
+#include "ImageManager.h"
+#include "SJTrackerView.h"
+
+
+
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -16,6 +21,8 @@
 IMPLEMENT_DYNCREATE(CMainFrame, CFrameWnd)
 
 BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
+	ON_COMMAND(ID_FILE_OPENDCM_2D, &CMainFrame::OnFileOpendcm2d)
+	ON_COMMAND(ID_FILE_OPENDCM_3D, &CMainFrame::OnFileOpendcm3d)
 END_MESSAGE_MAP()
 
 // CMainFrame construction/destruction
@@ -57,3 +64,16 @@ void CMainFrame::Dump(CDumpContext& dc) const
 
 // CMainFrame message handlers
 
+
+
+void CMainFrame::OnFileOpendcm2d()
+{
+	CSJTrackerView::getInst()->InitVolumeByDcm2D();
+
+}
+
+
+void CMainFrame::OnFileOpendcm3d()
+{
+	CSJTrackerView::getInst()->InitVolumeByDcm3D();
+}

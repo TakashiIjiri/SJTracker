@@ -124,9 +124,6 @@ public:
 
 class ImageManager
 {
-	bool m_bInitialized;
-
-    vector< vector<CString> > m_fNames;
 
 	short       m_minV ;
 	short       m_maxV ;
@@ -144,7 +141,15 @@ public:
 
 	static ImageManager* getInst(){ static ImageManager p; return &p;}
 
-	void initialize(CString topDirPath);
+
+	void initialize2DSlices(CString topDirPath);
+	void initialize3Dflils (vector<string> files);
+	void initializeDefoult ();
+
+private:
+	void postInitialization();
+
+public:
 
 	void updateVisVolume( int winLvMin, int winLvMax, int time);
 	

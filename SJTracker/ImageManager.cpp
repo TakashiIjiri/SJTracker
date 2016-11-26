@@ -7,7 +7,6 @@
 
 ImageManager::ImageManager()
 {
-	m_bInitialized = false;
 }
 
 
@@ -146,14 +145,103 @@ bool t_open4DImg( const vector< vector<CString> > &fNames, vector< TVolumeInt16*
 
 
 
-void ImageManager::initialize(CString topDirPath)
+
+
+static bool t_LoadDefoultVolume
+	(
+		const int W, const int H, const int D, const int xOfst, short* vol
+	)
 {
-	m_bInitialized = true;
+	const int R  = W / 5;
+	const int c1 = 2*R;
+	const int c2 = 3*R;
+
+	for (int z = 0; z < D; ++z)
+	for (int y = 0; y < H; ++y)
+	for (int x = 0; x < W; ++x)
+	{
+		float d1 = sqrt( (xOfst + x - c1)*(xOfst + x - c1) + (y - c1)*(y - c1) + (z - c1)*(z - c1) );
+		float d2 = sqrt( (xOfst + x - c2)*(xOfst + x - c2) + (y - c2)*(y - c2) + (z - c2)*(z - c2) );
+		float v = 3000 * exp(-(d1-R)*(d1-R) / 10 ) + 3000 * exp(-(d2-R)*(d2-R) / 10);
+		vol[x + y * W + z * W*H] = (short)v - 1500;
+	}
+	return true;
+}
 
 
-	t_get4DFilePaths( topDirPath, m_fNames );
-	t_open4DImg     ( m_fNames, m_img4D    );
 
+
+
+
+
+
+void ImageManager::initializeDefoult()
+{
+	const int W = 64;
+	const int H = 64;
+	const int D = 64;
+	const int fNum = 10;
+	m_img4D.clear();
+	
+	for (int f = 0; f < fNum; ++f)
+	{
+		TVolumeInt16 *v = new TVolumeInt16(W,H,D);
+		v->px = v->py = v->pz = 1.0;
+		m_img4D.push_back( v );
+		t_LoadDefoultVolume(W,H,D,f * 5, v->img);
+		
+	}
+
+	postInitialization();
+}
+
+void ImageManager::initialize2DSlices(CString topDirPath)
+{
+	m_img4D.clear();
+
+    vector< vector<CString> > fNames;
+
+	t_get4DFilePaths( topDirPath, fNames );
+	t_open4DImg     ( fNames, m_img4D    );
+
+	postInitialization();
+}
+
+
+
+void ImageManager::initialize3Dflils(vector<string> fnames)
+{
+	m_img4D.clear();
+
+	for (const auto f : fnames)
+	{
+		fprintf( stderr, "load:%s\n", f.c_str());
+		Tdcmtk dcmtk( f.c_str() );
+        int W, H, fNum, chNum, bitNum, bSign;
+        dcmtk.getSize( W, H, fNum );
+        dcmtk.getFormat( chNum, bitNum, bSign);
+
+
+		TVolumeInt16 *v = new TVolumeInt16(W,H,fNum);
+		v->px = v->py = v->pz = 1.0;
+		m_img4D.push_back( v );
+
+		dcmtk.getPixelsTo3D_SInt16(v->img);
+	}
+
+	postInitialization();
+}
+
+
+
+
+
+
+
+
+void ImageManager::postInitialization()
+{
+	
     if( m_img4D.size() == 0 || m_img4D[0]->W == 0 || m_img4D[0]->H == 0 || m_img4D[0]->D == 0 ) exit(0);
 
 
@@ -196,6 +284,10 @@ void ImageManager::initialize(CString topDirPath)
     m_vol      .m_bNearSmpl = false;
     m_transFunc.m_bNearSmpl = false;
 }
+
+
+
+
 
 
 

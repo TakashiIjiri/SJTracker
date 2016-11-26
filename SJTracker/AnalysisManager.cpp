@@ -122,6 +122,17 @@ AnalysisManager::~AnalysisManager()
 
 void AnalysisManager::initialize(int W, int H, int D, int fNum, TVec3 pitch )
 {
+
+	
+	m_isoValue = 0; 
+    m_Bone1_vID.clear();
+	m_Bone2_vID.clear(); //vertex index of m_isoSurfs[0]
+
+	m_f_isoSurfs  .clear();
+	m_f_BoneTrans1.clear();
+	m_f_BoneTrans2.clear();
+	m_f_BoneCPs1  .clear();
+	m_f_BoneCPs2  .clear();
     m_f_isoSurfs  .resize( fNum );
 	m_f_BoneTrans1.resize( fNum );
 	m_f_BoneTrans2.resize( fNum );
