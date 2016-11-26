@@ -250,3 +250,43 @@ bool Tdcmtk::getPixelsToFlt(float* data)
 
 
 
+
+
+
+
+//data should be allocated
+bool Tdcmtk::getPixelsTo3D_SInt16(Sint16* data)
+{
+	if (!m_dataSet)
+	{
+		t_info("fails to open the file");
+		return false;
+	}
+	if (m_nBits == 16 && m_bSined) 
+	{
+		t_info("findAndGetSint16Array\n"); 
+		const Sint16 *v = 0;
+		unsigned long psize = 0;
+		if ( m_dataSet->findAndGetUint16Array( DCM_PixelData, (const Uint16*&) v, &psize,false ).bad() ) return false;
+
+		for (int i = 0, s = m_W * m_H * m_fNum; i < s; ++i) data[i] = v[i];
+		delete[] v;
+	}
+	else if (m_nBits == 16 && !m_bSined)
+	{
+		t_info("findAndGetUint16Array\n"); 
+		const Uint16 *v = 0;
+		unsigned long psize = 0;
+		if ( m_dataSet->findAndGetUint16Array( DCM_PixelData, (const Uint16*&) v, &psize,false ).bad() ) return false;
+
+		for (int i = 0, s = m_W * m_H * m_fNum; i < s; ++i) data[i] = v[i];
+		delete[] v;
+	}
+	else
+	{
+		t_info("this file type is not implemeted yet\n");
+		return false;
+	}
+
+	return true;
+}

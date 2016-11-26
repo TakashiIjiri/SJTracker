@@ -143,7 +143,7 @@ public:
 
 
 	void initialize2DSlices(CString topDirPath);
-	void initialize3Dflils (vector<CString> files);
+	void initialize3Dflils (vector<string> files);
 	void initializeDefoult ();
 
 private:

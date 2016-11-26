@@ -296,6 +296,63 @@ BOOL CSJTrackerView::OnMouseWheel(UINT nFlags,short zDelta,CPoint pt)
 
 
 
+
+
+class LessString {
+public:
+    bool operator()(const string& rsLeft, const string& rsRight) const 
+	{
+		if(rsLeft.length() == rsRight.length()) return rsLeft < rsRight;
+		else                                    return rsLeft.length() < rsRight.length();
+    }
+};
+
+
+static string getExtension(const string fname)
+{
+	size_t pos = fname.find_last_of('.');
+	
+	//ドットなし
+	if( pos == string::npos) return string("");
+	
+	//あまりに長い拡張子は除外
+	if( pos < fname.length()-10 ) return string("");
+
+	return fname.substr( pos+1, fname.length() - pos);
+}
+
+static bool t_loadMultipleFile(const CString filter, string &fext, vector<string> &fnames)
+{
+	
+	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_CREATEPROMPT | OFN_FILEMUSTEXIST | OFN_ALLOWMULTISELECT | OFN_HIDEREADONLY, filter);
+	char szFileNameBuffer[20000] = {0};      // ファイル名を保存させる為のバッファ
+	dlg.m_ofn.lpstrFile = szFileNameBuffer;  // バッファの割り当て
+	dlg.m_ofn.nMaxFile  = 20000;              // 最大文字数の設定
+
+	if(dlg.DoModal() != IDOK) return false;
+	POSITION pos = dlg.GetStartPosition();
+
+	while(pos)
+	{
+		fnames.push_back( (LPCTSTR) dlg.GetNextPathName(pos) );
+
+		if( fnames.size() == 1 ) fext = getExtension( fnames.back() );
+		else if( fext != getExtension( fnames.back() ) )
+		{
+			AfxMessageBox( "複数のファイルが混ざっています");
+			return false;
+		}
+	}
+	return true;
+}
+
+
+
+
+
+
+
+
 void CSJTrackerView::InitVolumeDefoult()
 {
 	m_topDir = "";
@@ -314,8 +371,14 @@ void CSJTrackerView::InitVolumeByDcm2D()
 
 void CSJTrackerView::InitVolumeByDcm3D()
 {
-	m_topDir = BrowseForFolder(NULL, "select folder", "", "select folder1", 1);
-	ImageManager::getInst()->initialize2DSlices( m_topDir    );
+	
+	CString filter("load slices(*.dcm; *.*;)|*.dcm; *.*;||");
+	vector<string> fnames;
+	string fext;
+
+	if( !t_loadMultipleFile( filter, fext, fnames) ) return;
+	sort(fnames.begin(), fnames.end(), LessString() );
+	ImageManager::getInst()->initialize3Dflils( fnames );
 	postInitialization();
 }
 

@@ -209,6 +209,33 @@ void ImageManager::initialize2DSlices(CString topDirPath)
 
 
 
+void ImageManager::initialize3Dflils(vector<string> fnames)
+{
+	m_img4D.clear();
+
+	for (const auto f : fnames)
+	{
+		fprintf( stderr, "load:%s\n", f.c_str());
+		Tdcmtk dcmtk( f.c_str() );
+        int W, H, fNum, chNum, bitNum, bSign;
+        dcmtk.getSize( W, H, fNum );
+        dcmtk.getFormat( chNum, bitNum, bSign);
+
+
+		TVolumeInt16 *v = new TVolumeInt16(W,H,fNum);
+		v->px = v->py = v->pz = 1.0;
+		m_img4D.push_back( v );
+
+		dcmtk.getPixelsTo3D_SInt16(v->img);
+	}
+
+	postInitialization();
+}
+
+
+
+
+
 
 
 
