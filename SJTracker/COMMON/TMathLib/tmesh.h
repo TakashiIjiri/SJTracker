@@ -350,6 +350,8 @@ public:
 		for( int i=0; i<m_vSize; ++i) n += m_v_norm[i];
 		return n.Normalize();
 	}
+
+	void GetDistToPoint( const TVec3 &p, TVec3 &posOnSurf, double &dist) const;
 };
 
 

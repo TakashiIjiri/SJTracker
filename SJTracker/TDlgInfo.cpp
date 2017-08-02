@@ -58,6 +58,7 @@ void TDlgInfo::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CHECK_REND_CPS_2, m_check_DoRendCP2);
 	DDX_Control(pDX, IDC_CHECK_REND_CPTRAJ, m_check_CpTrajectory);
 	DDX_Control(pDX, IDC_SPIN_CPTRAJ_IDX, m_spin_CpTrajIdx);
+	DDX_Control(pDX, IDC_CHECK_VIZ_SURF_DIFF, m_check_visSurfDiff);
 }
 
 
@@ -94,6 +95,7 @@ ON_BN_CLICKED(IDC_BUTTON_EXPORT_STL, &TDlgInfo::OnBnClickedButtonExportStl)
 ON_BN_CLICKED(IDC_CHECK_REND_CPTRAJ, &TDlgInfo::OnBnClickedCheckRendCptraj)
 ON_EN_CHANGE(IDC_EDIT_CPTRAJ_IDX, &TDlgInfo::OnEnChangeEditCptrajIdx)
 ON_BN_CLICKED(IDC_BUTTON_START_TRACKING_ONEFRAME, &TDlgInfo::OnBnClickedButtonStartTrackingOneframe)
+ON_BN_CLICKED(IDC_BUTTON_CALC_SURFACE_DIFF, &TDlgInfo::OnBnClickedButtonCalcSurfaceDiff)
 END_MESSAGE_MAP()
 
 
@@ -562,3 +564,10 @@ void TDlgInfo::OnEnChangeEditCptrajIdx()
 	CSJTrackerView::getInst()->RedrawWindow();
 }
 
+
+
+void TDlgInfo::OnBnClickedButtonCalcSurfaceDiff()
+{
+	AnalysisManager::getInst()->ComputeMatchedSurfaceDiff();
+	CSJTrackerView::getInst()->RedrawWindow();
+}

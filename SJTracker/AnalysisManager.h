@@ -134,18 +134,71 @@ public:
 
 
 
+class TVtxDistInfo
+{
+public:
+	int    m_idx ; // 元surface上の頂点id
+	double m_dist; // 対応先surfaceへの最小距離
+	TVec3  m_pSrc; // 対応元の頂点位置
+	TVec3  m_pTgt; // 対応先surface上の位置
+
+	~TVtxDistInfo(){}
+	TVtxDistInfo(){}
+
+	TVtxDistInfo( const TVtxDistInfo &src){
+		m_idx  = src.m_idx;
+		m_dist = src.m_dist;
+		m_pSrc  = src.m_pSrc;
+		m_pTgt  = src.m_pTgt;
+	}
+
+
+	TVtxDistInfo& operator=(const TVtxDistInfo& src){
+		m_idx  = src.m_idx;
+		m_dist = src.m_dist;
+		m_pSrc  = src.m_pSrc;
+		m_pTgt  = src.m_pTgt;
+		return *this;
+	}
+
+	TVtxDistInfo( int idx, double dist, TVec3 pSrc, TVec3 pTgt){
+		m_idx  = idx;
+		m_dist = dist;
+		m_pSrc  = pSrc;
+		m_pTgt  = pTgt;
+	}
+
+};
+
+
+
+
+
+
+
+
 
 class AnalysisManager
 {
-    int m_isoValue; 
-    set<int> m_Bone1_vID; //vertex index of m_isoSurfs[0]
-	set<int> m_Bone2_vID; //vertex index of m_isoSurfs[0]
-    
+    int m_isoValue;
+
+	//各フレームに置けるiso surface
 	vector< TIsoSurf > m_f_isoSurfs  ;
+
+	//m_isoSurfs[0]における、領域1/領域2の頂点id集合 
+    set<int> m_Bone1_vID; 
+	set<int> m_Bone2_vID;     
+
+	//領域1/領域2の剛体変換
     vector< TMat16   > m_f_BoneTrans1;
 	vector< TMat16   > m_f_BoneTrans2;
+
+	//領域1/領域2上のcontrol point
     vector< TPointSet> m_f_BoneCPs1  ;
     vector< TPointSet> m_f_BoneCPs2  ;
+
+	//領域2の (頂点ID/最近傍点距離) 
+	vector< vector<TVtxDistInfo> > m_f_Bone2vtx_dist;
 
 
 	AnalysisManager();
@@ -180,7 +233,10 @@ public:
     void drawCPs2    ( const int frameI );
     void drawRegistPt( const int frameI );
     void drawCutPlane( const int frameI );
+    
+	void drawMatchedSurfDiff( const int frameI );
 	
+
 	//void drawRotAxis( const int frameI );
 	//bool calcRotAxisSpeed( int frameI,  bool bLocalCoord, TVec3  &axis, double &theta ) const;
 	
@@ -194,6 +250,13 @@ public:
 
 
 	TVec3 getGravCenterOfCPs( const int frameI, const int boneID_1or2);
+
+
+
+
+
+	void ComputeMatchedSurfaceDiff();
+
 
 };
 

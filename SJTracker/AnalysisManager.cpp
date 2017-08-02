@@ -714,6 +714,38 @@ void AnalysisManager::drawCutPlane(const int frameI )
 }
 
 
+void AnalysisManager::drawMatchedSurfDiff(const int frameI)
+{
+	if( frameI < 0 || frameI >= m_f_isoSurfs.size() || m_f_Bone2vtx_dist.size() ==0 ) return;
+
+	vector<TVtxDistInfo> &vtxDiffInfo = m_f_Bone2vtx_dist[frameI];
+	TMesh &mesh = m_f_isoSurfs[0].m_surf;
+
+	TMat16 M = m_f_BoneTrans2[frameI];
+    
+	glPointSize(4);
+	glBegin( GL_POINTS );
+	for( auto it = vtxDiffInfo.begin(); it != vtxDiffInfo.end(); ++it)
+	{
+		glColor3d  ( 10 * it->m_dist, 0, 0 );
+		glVertex3dv( it->m_pSrc.data );
+	}
+	glEnd();
+
+	glLineWidth(1);
+	glBegin( GL_LINES);
+	for( auto it = vtxDiffInfo.begin(); it != vtxDiffInfo.end(); ++it)
+	{
+		glColor3d( 0, 1, 1 );
+		glVertex3dv( it->m_pSrc.data );
+		glVertex3dv( it->m_pTgt.data );
+	}
+	glEnd();
+
+
+}
+
+
 
 
 
@@ -833,7 +865,6 @@ void AnalysisManager::performTracking(const float icpRejectScale, const int icpN
 	t_setMat( baseMesh.m_verts, baseMesh.m_v_norm, m_Bone1_vID, srcPC1);
 	t_setMat( baseMesh.m_verts, baseMesh.m_v_norm, m_Bone2_vID, srcPC2);
 
-
 	// registration 
 	m_f_BoneTrans1.resize( fNum );
 	m_f_BoneTrans2.resize( fNum );
@@ -903,7 +934,7 @@ void AnalysisManager::performTracking_oneFrame(const float icpRejectScale, const
 	t_setMat(trgtMesh.getVnum(), trgtMesh.m_verts, trgtMesh.m_v_norm, trgtPC );
 
 	TMat16 M1prev = m_f_BoneTrans1[ frameI ];
-	TMat16 M2prev = m_f_BoneTrans1[ frameI ];
+	TMat16 M2prev = m_f_BoneTrans2[ frameI ];
 	t_calcRigidTransformatio(icpRejectScale, icpNumLv, M1prev, srcPC1, trgtPC, m_f_BoneTrans1[frameI] );
 	t_calcRigidTransformatio(icpRejectScale, icpNumLv, M2prev, srcPC2, trgtPC, m_f_BoneTrans2[frameI] );
 
@@ -1182,5 +1213,55 @@ TVec3 AnalysisManager::getGravCenterOfCPs( const int frameI, const int boneID_1o
 	}
 	
 	return gc;
+
+}
+
+
+void AnalysisManager::ComputeMatchedSurfaceDiff()
+{
+	const int fNum = (int) m_f_isoSurfs.size();
+
+	for( int i=0; i < fNum; ++i ) if( m_f_isoSurfs[i].m_surf.getVnum() == 0 ) 
+	{
+		AfxMessageBox( "Iso surfaceが未作成です" );
+        return;
+    }
+
+	if (m_Bone1_vID.size() == 0 || m_Bone2_vID.size() == 0)
+	{
+		AfxMessageBox( "一度全フレームに対して剛体位置あわせを行なってください" );
+        return;
+	}
+
+
+	m_f_Bone2vtx_dist.clear();
+	m_f_Bone2vtx_dist.resize(fNum);
+
+	for (int fi = 0; fi < fNum; ++fi)
+	{
+		fprintf(stderr, "Tod compute %d frame\n", fi);
+
+		const TMesh &baseMesh = m_f_isoSurfs[0 ].m_surf; 
+		const TMesh &trgtMesh = m_f_isoSurfs[fi].m_surf; 
+
+		int c=0;
+		for (auto it = m_Bone2_vID.begin(); it != m_Bone2_vID.end(); ++it, ++c)
+		{
+			int   vid = *it;
+			TVec3 pos;
+			double dist;
+
+			TVec3 p = m_f_BoneTrans2[fi] * baseMesh.m_verts[vid];
+
+			trgtMesh.GetDistToPoint(p, pos, dist);
+			m_f_Bone2vtx_dist[fi].push_back(  TVtxDistInfo( vid, dist, p, pos ) );
+
+			if( c >= 400) break;
+
+			if( c%100 == 0 ) fprintf( stderr, "%d/%d", c, m_Bone2_vID.size());
+		}
+		fprintf(stderr, "compute %d frame done!!\n", fi);
+	}
+
 
 }

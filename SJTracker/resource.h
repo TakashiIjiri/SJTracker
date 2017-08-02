@@ -53,6 +53,8 @@
 #define IDC_EDIT_CPTRAJ_IDX             1035
 #define IDC_SPIN_CPTRAJ_IDX             1036
 #define IDC_BUTTON_START_TRACKING_ONEFRAME 1037
+#define IDC_BUTTON_CALC_SURFACE_DIFF    1038
+#define IDC_CHECK_VIZ_SURF_DIFF         1039
 #define ID_FILE_OPENDCM                 32771
 #define ID_FILE_OPENDCM32772            32772
 #define ID_FILE_OPENDCM_2D              32773

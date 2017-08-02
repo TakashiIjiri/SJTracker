@@ -95,7 +95,11 @@ void TCore::drawScene(  )
 	m_shaderCrssec.end();
 
 
-
+	//vis diff 
+	if (dlg.m_check_visSurfDiff.GetCheck())
+	{
+		AnalysisManager::getInst()->drawMatchedSurfDiff( frameI );
+	}
 
 	//volume rendering 
 	if( dlg.m_check_DoRendVolume.GetCheck())

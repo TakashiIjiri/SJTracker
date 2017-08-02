@@ -150,4 +150,6 @@ public:
 	afx_msg void OnBnClickedCheckRendCptraj();
 	afx_msg void OnEnChangeEditCptrajIdx();
 	afx_msg void OnBnClickedButtonStartTrackingOneframe();
+	CButton m_check_visSurfDiff;
+	afx_msg void OnBnClickedButtonCalcSurfaceDiff();
 };
