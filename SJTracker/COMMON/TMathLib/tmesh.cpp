@@ -2274,17 +2274,27 @@ void TMesh::RemoveShortEdges_largeMesh( const int trgtVtxNum )
 
 void TMesh::GetDistToPoint(const  TVec3 &p, TVec3 &posOnSurf, double &dist) const
 {
-	dist = DBL_MAX;
-	
-	//compute squared distance to all edges
-    for( int i = 0; i < m_eSize; ++i )
+	//mesh形状がある程度均一であることを仮定し，近似的に最近傍点を計算する
+	int idx;
+	t_verts_GetNearestPoint(m_vSize, m_verts, p, idx, dist);
+	posOnSurf = m_verts[idx];
+
+	//edge
+	vector<int> Vs, Ps;
+	this->GetRingVs(idx, Vs);
+	this->GetRingPs(idx, Ps);
+
+	for (auto it = Vs.begin(); it != Vs.end(); ++it)
 	{
 		//h = x0 + t d, (h-p)*d = 0
-		const TVec3 &x0 = m_verts[ m_edges[i].v[0] ];
-		const TVec3 &x1 = m_verts[ m_edges[i].v[1] ];
+		const TVec3 &x0 = m_verts[ idx ];
+		const TVec3 &x1 = m_verts[ *it  ];
 		const TVec3 d = x1-x0;
 
-		double t = ( (p - x0)*d ) / (d*d);
+		double dd = (d*d);
+		if( dd == 0) continue;
+
+		double t = ( (p - x0)*d ) / dd;
 
 		if (t < 0)
 		{
@@ -2310,18 +2320,90 @@ void TMesh::GetDistToPoint(const  TVec3 &p, TVec3 &posOnSurf, double &dist) cons
 				posOnSurf = x0 + t*d;
 			}
 		}
-    }
+	}
 
-
-	//compute squred distance to all triangles
-	for (int i = 0; i < m_pSize; ++i)
+	for (auto it = Ps.begin(); it != Ps.end(); ++it)
 	{
 		// d1 = x1-x0, d2 = x2-x0, h = x0 + s d1 + t d2
 		// d1*(h-p) = 0
 		// d2*(h-p) = 0 よりstを計算
-		const TVec3 &x0 = m_verts[ m_polys[i].idx[0] ];
-		const TVec3 &x1 = m_verts[ m_polys[i].idx[1] ];
-		const TVec3 &x2 = m_verts[ m_polys[i].idx[2] ];
+		const TVec3 &x0 = m_verts[ m_polys[*it].idx[0] ];
+		const TVec3 &x1 = m_verts[ m_polys[*it].idx[1] ];
+		const TVec3 &x2 = m_verts[ m_polys[*it].idx[2] ];
+		TVec3 d1 = x1-x0;
+		TVec3 d2 = x2-x0;
+		double s,t;
+		t_solve2by2LinearEquation( d1*d1, d1*d2, 
+			                       d2*d1, d2*d2, d1*(p-x0),    
+			                                     d2*(p-x0), s,t);
+		if (0 <= s && 0 <= t && s + t <= 1)
+		{
+			TVec3 h = x0 + s*d1 + t*d2;
+			double d = t_DistSq( p, h);
+			if( d < dist ) {
+				dist = d; 
+				posOnSurf = h;
+			}
+		}
+	}
+}
+
+
+
+void TMesh::GetDistToPoint(const  TVec3 &p, const int nearestVid, TVec3 &posOnSurf, double &dist) const
+{
+	dist = DBL_MAX;
+	//edge
+	vector<int> Vs, Ps;
+	this->GetRingVs(nearestVid, Vs);
+	this->GetRingPs(nearestVid, Ps);
+
+	for (auto it = Vs.begin(); it != Vs.end(); ++it)
+	{
+		//h = x0 + t d, (h-p)*d = 0
+		const TVec3 &x0 = m_verts[ nearestVid ];
+		const TVec3 &x1 = m_verts[ *it  ];
+		const TVec3 d = x1-x0;
+
+		double dd = (d*d);
+		if( dd == 0) continue;
+
+		double t = ( (p - x0)*d ) / dd;
+
+		if (t < 0)
+		{
+			double tmp = t_DistSq( p, x0);
+			if( tmp < dist ) {
+				dist = tmp; 
+				posOnSurf = x0;
+			}
+		}
+		else if (t > 1)
+		{
+			double tmp = t_DistSq( p, x1);
+			if( tmp < dist ) {
+				dist = tmp; 
+				posOnSurf = x1;
+			}
+		}
+		else
+		{
+			double tmp = t_DistSq( p, x0 + t*d);
+			if( tmp < dist ) {
+				dist = tmp; 
+				posOnSurf = x0 + t*d;
+			}
+		}
+	}
+
+	for (auto it = Ps.begin(); it != Ps.end(); ++it)
+	{
+		// d1 = x1-x0, d2 = x2-x0, h = x0 + s d1 + t d2
+		// d1*(h-p) = 0
+		// d2*(h-p) = 0 よりstを計算
+		const TVec3 &x0 = m_verts[ m_polys[*it].idx[0] ];
+		const TVec3 &x1 = m_verts[ m_polys[*it].idx[1] ];
+		const TVec3 &x2 = m_verts[ m_polys[*it].idx[2] ];
 		TVec3 d1 = x1-x0;
 		TVec3 d2 = x2-x0;
 		double s,t;

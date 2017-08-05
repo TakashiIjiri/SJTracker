@@ -363,6 +363,7 @@ void AnalysisManager::CPs_rot  ( const int frameI, int boneid, TMat9 R    )
 		TVec3 gc;
 		for(int i=0; i < m_f_BoneCPs1[frameI].size(); ++i) gc += m_f_BoneCPs1[frameI].m_points[i];
 		gc /= m_f_BoneCPs1[frameI].size();
+
 		for(int i=0; i < m_f_BoneCPs1[frameI].size(); ++i) 
 			m_f_BoneCPs1[frameI].m_points[i] = R * ( m_f_BoneCPs1[frameI].m_points[i] - gc) + gc;
 
@@ -400,6 +401,11 @@ void AnalysisManager::CPs_rot  ( const int frameI, int boneid, TMat9 R    )
 		m_f_BoneTrans2[frameI][14] += gc[2];
 	}
 }
+
+
+
+
+
 
 
 
@@ -714,38 +720,6 @@ void AnalysisManager::drawCutPlane(const int frameI )
 }
 
 
-void AnalysisManager::drawMatchedSurfDiff(const int frameI)
-{
-	if( frameI < 0 || frameI >= m_f_isoSurfs.size() || m_f_Bone2vtx_dist.size() ==0 ) return;
-
-	vector<TVtxDistInfo> &vtxDiffInfo = m_f_Bone2vtx_dist[frameI];
-	TMesh &mesh = m_f_isoSurfs[0].m_surf;
-
-	TMat16 M = m_f_BoneTrans2[frameI];
-    
-	glPointSize(4);
-	glBegin( GL_POINTS );
-	for( auto it = vtxDiffInfo.begin(); it != vtxDiffInfo.end(); ++it)
-	{
-		glColor3d  ( 10 * it->m_dist, 0, 0 );
-		glVertex3dv( it->m_pSrc.data );
-	}
-	glEnd();
-
-	glLineWidth(1);
-	glBegin( GL_LINES);
-	for( auto it = vtxDiffInfo.begin(); it != vtxDiffInfo.end(); ++it)
-	{
-		glColor3d( 0, 1, 1 );
-		glVertex3dv( it->m_pSrc.data );
-		glVertex3dv( it->m_pTgt.data );
-	}
-	glEnd();
-
-
-}
-
-
 
 
 
@@ -802,7 +776,7 @@ ICP parameters
 [in]	numMaxCorr	Currently this parameter is ignored and only PickyICP is applied. Leave it as 1.
 */
 
-static void t_calcRigidTransformatio
+static void t_calcRigidTransformationOld
 (
 	const float   icp_rejectionScale,
 	const int     icp_numLevels     ,
@@ -813,6 +787,7 @@ static void t_calcRigidTransformatio
 
 )
 {
+	//old implementation
 	initM.TransposeSelf();
 
 	// Create an instance of ICP
@@ -822,11 +797,44 @@ static void t_calcRigidTransformatio
 
 	resM = initM;
 	resM.TransposeSelf();
-
 	fprintf( stderr, "rejScale: %f, numLv: %d, resi %f\n", icp_rejectionScale, icp_numLevels, residual);
 }
 
 
+static void t_calcRigidTransformation
+(
+	const float   icp_rejectionScale,
+	const int     icp_numLevels     ,
+	      TMat16  initM,
+	const Mat    &srcPC,
+	const Mat    &trgtPC,
+	      TMat16 &resM
+
+)
+{
+	fprintf(stderr, "\n\n--------t_calcRigidTransformation-----\n");
+	//new implementation
+	initM.TransposeSelf();
+	initM.Trace();
+
+
+	Pose3DPtr M1 = new Pose3D();
+	M1->updatePose( initM.data );
+	vector<Pose3DPtr> poses;
+	poses.push_back(M1);
+
+	// Create an instance of ICP
+	ICP icp( 500, 0.0001f, icp_rejectionScale, icp_numLevels);
+	icp.registerModelToScene(srcPC, trgtPC, poses);
+
+	resM.Set(poses[0]->pose);
+	resM.TransposeSelf();
+
+	resM.Trace();
+
+	//delete M1;
+	fprintf( stderr, "rejScale: %f, numLv: %d\n", icp_rejectionScale, icp_numLevels);
+}
 
 
 // rigid registrtation for bones in first frame to other frames
@@ -878,8 +886,8 @@ void AnalysisManager::performTracking(const float icpRejectScale, const int icpN
 		t_setMat(mesh.getVnum(), mesh.m_verts, mesh.m_v_norm, trgtPC );
 
 		fprintf( stderr, "start registration  %d\n", t);
-		t_calcRigidTransformatio(icpRejectScale, icpNumLv, m_f_BoneTrans1[t-1], srcPC1, trgtPC, m_f_BoneTrans1[t] );
-		t_calcRigidTransformatio(icpRejectScale, icpNumLv, m_f_BoneTrans2[t-1], srcPC2, trgtPC, m_f_BoneTrans2[t] );
+		t_calcRigidTransformation(icpRejectScale, icpNumLv, m_f_BoneTrans1[t-1], srcPC1, trgtPC, m_f_BoneTrans1[t] );
+		t_calcRigidTransformation(icpRejectScale, icpNumLv, m_f_BoneTrans2[t-1], srcPC2, trgtPC, m_f_BoneTrans2[t] );
 		fprintf( stderr, "done %d\n", t);
 
 		//copy CP from 0-th frame
@@ -935,8 +943,8 @@ void AnalysisManager::performTracking_oneFrame(const float icpRejectScale, const
 
 	TMat16 M1prev = m_f_BoneTrans1[ frameI ];
 	TMat16 M2prev = m_f_BoneTrans2[ frameI ];
-	t_calcRigidTransformatio(icpRejectScale, icpNumLv, M1prev, srcPC1, trgtPC, m_f_BoneTrans1[frameI] );
-	t_calcRigidTransformatio(icpRejectScale, icpNumLv, M2prev, srcPC2, trgtPC, m_f_BoneTrans2[frameI] );
+	t_calcRigidTransformation(icpRejectScale, icpNumLv, M1prev, srcPC1, trgtPC, m_f_BoneTrans1[frameI] );
+	t_calcRigidTransformation(icpRejectScale, icpNumLv, M2prev, srcPC2, trgtPC, m_f_BoneTrans2[frameI] );
 
 	//copy CP from 0-th frame
 	m_f_BoneCPs1[frameI].m_points = m_f_BoneCPs1[0].m_points;
@@ -1217,7 +1225,264 @@ TVec3 AnalysisManager::getGravCenterOfCPs( const int frameI, const int boneID_1o
 }
 
 
-void AnalysisManager::ComputeMatchedSurfaceDiff()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////
+//only for evaluation////////////////////////////////////////////////////////
+void AnalysisManager::Evaluation_LoadObjFile(const char* fname)
+{
+	m_evalSurf.init_ObjFile(fname);
+
+	TVec3 gc = m_evalSurf.GetGravCntr();
+	m_evalSurf.Translate( -gc );
+
+	const int fNum = (int) m_f_isoSurfs.size();
+
+	m_f_EvalSurfTrans.clear();
+	m_f_EvalSurfTrans.resize(fNum);
+	for( int i=0; i < fNum; ++i) {
+		m_f_EvalSurfTrans[i].SetIdentity();
+		m_f_EvalSurfTrans[i][12] = gc[0];
+		m_f_EvalSurfTrans[i][13] = gc[1];
+		m_f_EvalSurfTrans[i][14] = gc[2];
+	}
+}
+
+void AnalysisManager::Evaluation_translate(int frameI, TVec3 t)
+{
+	m_f_EvalSurfTrans[frameI][12] += t[0];
+	m_f_EvalSurfTrans[frameI][13] += t[1];
+	m_f_EvalSurfTrans[frameI][14] += t[2];
+}
+
+
+//rotate by R 
+//M * v -->    T(1) * R * T(-1)* M * v
+//
+//   I t   R 0   I -t    R' t
+//   0 1 * 0 1 * 0  1 *  0  1
+//   ↓
+//   I t   R 0   R' 0    
+//   0 1 * 0 1 * 0  1 
+//   ↓
+//   I t   RR' 0 
+//   0 1 * 0   1 
+//   ↓
+//   RR' t
+//   0   1 
+// つまり回転行列だけ掛け合わせればOK 
+void AnalysisManager::Evaluation_rotation(int frameI, TMat9 R)
+{
+	TMat9 Rnew = R * m_f_EvalSurfTrans[frameI].GetRotation();
+	m_f_EvalSurfTrans[frameI].SetRotation( Rnew );
+}
+
+
+void AnalysisManager::Evaluation_StartTracking(const float icpRejectScale, const int icpNumLv )
+{
+	const int fNum = (int) m_f_isoSurfs.size();
+
+	if( m_f_EvalSurfTrans.size() == 0 || m_evalSurf.getVnum() == 0 )
+	{
+		AfxMessageBox( "最surfaceを読み込んでください");
+        return;
+    }
+    for( int i=0; i < fNum; ++i ) if( m_f_isoSurfs[i].m_surf.getVnum() == 0 ) {
+		AfxMessageBox( "Iso surfaceが未作成です" );
+        return;
+    }
+
+	if( IDYES != AfxMessageBox("全フレームに対して剛体位置あわせを計算しますか？",MB_YESNO) ) return;
+
+	//src point cloud
+
+	// registration m_f_EvalSurfTrans[0] は初期化すみ
+	for( int t=0; t < fNum; ++t)
+    {
+		//trgt point cloud
+		const TMesh &mesh = m_f_isoSurfs[t].m_surf;
+		Mat trgtPC =  Mat( (int)mesh      .getVnum(), 6, CV_32F);
+		Mat  srcPC =  Mat( (int)m_evalSurf.getVnum(), 6, CV_32F);
+		t_setMat( m_evalSurf.getVnum(), m_evalSurf.m_verts, m_evalSurf.m_v_norm, srcPC);
+		t_setMat( mesh      .getVnum(), mesh      .m_verts, mesh      .m_v_norm, trgtPC );
+
+		TMat16 M = ( t == 0 ) ? m_f_EvalSurfTrans[0] : m_f_EvalSurfTrans[t-1];
+
+		fprintf( stderr, "start registration  %d    (%d  %d)\n", t, m_evalSurf.getVnum(),mesh.getVnum() );
+		t_calcRigidTransformation(icpRejectScale, icpNumLv, M, srcPC, trgtPC, m_f_EvalSurfTrans[t] );
+		fprintf( stderr, "done %d\n", t);
+	}
+}	
+
+
+
+
+void AnalysisManager::Evaluation_drawSurf(const int frameI)
+{
+	if( m_f_EvalSurfTrans.size()==0) return;
+	glEnable(GL_LIGHTING);		
+    static float spec [4] = {0.9f,0.9f,0.9f,0.2f};
+    static float shin [1] = {54.0f};
+    static float diff[4]  = {0.2f,0.0f,0.8f,0.2f};
+    static float ambi[4]  = {0.2f,0.0f,0.8f,0.2f};  
+
+    glEnable( GL_LIGHTING );
+    glEnable( GL_LIGHT0   );
+    glEnable( GL_LIGHT1   );
+    glEnable( GL_LIGHT2   );
+
+    glMaterialfv( GL_FRONT, GL_SHININESS, shin );
+    glMaterialfv( GL_FRONT, GL_SPECULAR , spec );
+    glMaterialfv( GL_FRONT, GL_DIFFUSE  , diff );
+    glMaterialfv( GL_FRONT, GL_AMBIENT  , ambi );
+ 
+	glPushMatrix( );
+	glMultMatrixd( m_f_EvalSurfTrans[frameI].data );
+	glBegin( GL_TRIANGLES );
+    for( int i=0; i < m_evalSurf.getPnum(); ++i) 
+    {
+        const int *p = m_evalSurf.m_polys[i].idx;
+        glNormal3dv( m_evalSurf.m_v_norm[p[0]].data ); glVertex3dv( m_evalSurf.m_verts[p[0]].data );
+        glNormal3dv( m_evalSurf.m_v_norm[p[1]].data ); glVertex3dv( m_evalSurf.m_verts[p[1]].data );
+        glNormal3dv( m_evalSurf.m_v_norm[p[2]].data ); glVertex3dv( m_evalSurf.m_verts[p[2]].data );
+    }
+    glEnd();
+	glPopMatrix();
+
+    glDisable( GL_LIGHTING );
+
+}
+
+
+void AnalysisManager::Evaluation_drawDiff(const int frameI)
+{
+	if( frameI < 0 || frameI >= m_f_isoSurfs.size() || m_f_EvalBone2vtx_dist.size() ==0 ) return;
+
+	vector<TVtxDistInfo> &vtxDiffInfo = m_f_EvalBone2vtx_dist[frameI];
+	TMesh &mesh = m_f_isoSurfs[0].m_surf;
+
+	TMat16 M = m_f_BoneTrans2[frameI];
+    
+	glPointSize(4);
+	glBegin( GL_POINTS );
+	for( auto it = vtxDiffInfo.begin(); it != vtxDiffInfo.end(); ++it)
+	{
+		glColor3d  ( 10 * it->m_dist, 0, 0 );
+		glVertex3dv( it->m_pSrc.data );
+	}
+	glEnd();
+
+	glLineWidth(1);
+	glBegin( GL_LINES);
+	for( auto it = vtxDiffInfo.begin(); it != vtxDiffInfo.end(); ++it)
+	{
+		glColor3d( 0, 1, 1 );
+		glVertex3dv( it->m_pSrc.data );
+		glVertex3dv( it->m_pTgt.data );
+	}
+	glEnd();
+}
+
+
+
+
+static void searchNearestId(
+	const  TVec3 &p,
+	const  TVec3 *verts,
+	const  vector<int> &vid,
+	double &minDsq,
+	int    &minI)
+{
+	for (int i = 0; i < (int)vid.size(); ++i)
+	{
+		double d = t_DistSq( p, verts[vid[i]]);
+		if (d < minDsq)
+		{
+			minDsq = d;
+			minI = vid[i];
+		}
+	}
+}
+
+static void getNearestVtxIdx
+(
+	const TVec3  cube,
+	const int    srcN,
+	const TVec3 *srcVs,
+	const TMat16 srcTransM,
+	const int    tgtN,
+	const TVec3 *tgtVs,
+
+	int *vidSrcToTgt // size:srcN
+)
+{
+
+	const int DIV_N = 30;
+	vector<int> TgtIds[DIV_N][DIV_N][DIV_N];
+
+	//登録
+	for (int i = 0; i < tgtN; ++i)
+	{
+		//C[0] = 50.0, DIV_N = 4 のとき, [0,12.5] -> 0, [12.5,25.0]-->1 
+		int xi = (int) min( tgtVs[i][0] / cube[0] * DIV_N, DIV_N-1.0);  
+		int yi = (int) min( tgtVs[i][1] / cube[1] * DIV_N, DIV_N-1.0);  
+		int zi = (int) min( tgtVs[i][2] / cube[2] * DIV_N, DIV_N-1.0);  
+
+		TgtIds[zi][yi][xi].push_back(i);
+	}
+
+	//for (int i = 0; i < DIV_N; ++i)
+	//for (int j = 0; j < DIV_N; ++j)
+	//for (int k = 0; k < DIV_N; ++k) fprintf( stderr, "%d--", TgtIds[i][j][k].size());
+
+	//検索
+	for (int i = 0; i < srcN; ++i)
+	{
+		TVec3 p = srcTransM * srcVs[i]; 
+
+		int xi = (int) min( p[0] / cube[0] * DIV_N, DIV_N-1.0);  
+		int yi = (int) min( p[1] / cube[1] * DIV_N, DIV_N-1.0);  
+		int zi = (int) min( p[2] / cube[2] * DIV_N, DIV_N-1.0);  
+		double minDsq = DBL_MAX;
+		int    minI = -1;
+		searchNearestId( p, tgtVs, TgtIds[zi][yi][xi] , minDsq, minI);
+
+		//本来は26近傍にすべきだが、影響は非常に小さいので近似解を得る目的で6近傍のみ
+		if( xi > 0       ) searchNearestId( p, tgtVs, TgtIds[zi][yi][xi-1] , minDsq, minI);
+		if( yi > 0       ) searchNearestId( p, tgtVs, TgtIds[zi][yi-1][xi] , minDsq, minI);
+		if( zi > 0       ) searchNearestId( p, tgtVs, TgtIds[zi-1][yi][xi] , minDsq, minI);
+		if( xi < DIV_N-1 ) searchNearestId( p, tgtVs, TgtIds[zi][yi][xi+1] , minDsq, minI);
+		if( yi < DIV_N-1 ) searchNearestId( p, tgtVs, TgtIds[zi][yi+1][xi] , minDsq, minI);
+		if( zi < DIV_N-1 ) searchNearestId( p, tgtVs, TgtIds[zi+1][yi][xi] , minDsq, minI);
+		vidSrcToTgt[i] = minI;
+
+		//fprintf( stderr, "%d  ", minI, minDsq);
+	}
+
+}
+
+
+
+
+
+
+
+
+
+//naiive実装との比較済み
+void AnalysisManager::Evaluation_ComputeMachingDiff()
 {
 	const int fNum = (int) m_f_isoSurfs.size();
 
@@ -1227,39 +1492,50 @@ void AnalysisManager::ComputeMatchedSurfaceDiff()
         return;
     }
 
-	if (m_Bone1_vID.size() == 0 || m_Bone2_vID.size() == 0)
+	if (m_f_EvalSurfTrans.size() == 0 || m_evalSurf.getVnum() == 0)
 	{
-		AfxMessageBox( "一度全フレームに対して剛体位置あわせを行なってください" );
+		AfxMessageBox( "まず剛体位置あわせを行なってください" );
         return;
 	}
 
+	int W,H,D,F;
+	TVec3 pitch;
+	ImageManager::getInst()->getResolution(W,H,D,F);
+	ImageManager::getInst()->getPitch(pitch);
+	TVec3 cube( W*pitch[0], H*pitch[1], D*pitch[2]);
+	
 
-	m_f_Bone2vtx_dist.clear();
-	m_f_Bone2vtx_dist.resize(fNum);
+	m_f_EvalBone2vtx_dist.clear();
+	m_f_EvalBone2vtx_dist.resize(fNum);
 
 	for (int fi = 0; fi < fNum; ++fi)
 	{
 		fprintf(stderr, "Tod compute %d frame\n", fi);
 
-		const TMesh &baseMesh = m_f_isoSurfs[0 ].m_surf; 
 		const TMesh &trgtMesh = m_f_isoSurfs[fi].m_surf; 
 
-		int c=0;
-		for (auto it = m_Bone2_vID.begin(); it != m_Bone2_vID.end(); ++it, ++c)
+		int *nearestVid = new int[m_evalSurf.getVnum()];
+		getNearestVtxIdx(cube, m_evalSurf.getVnum(), m_evalSurf.m_verts, m_f_EvalSurfTrans[fi],
+			                   trgtMesh.getVnum(), trgtMesh.m_verts, nearestVid);
+
+
+		for (int i=0; i < m_evalSurf.getVnum(); ++i)
 		{
-			int   vid = *it;
+			TVec3 p = m_f_EvalSurfTrans[fi] * m_evalSurf.m_verts[i];
+
 			TVec3 pos;
 			double dist;
+			trgtMesh.GetDistToPoint(p, nearestVid[i], pos, dist);
 
-			TVec3 p = m_f_BoneTrans2[fi] * baseMesh.m_verts[vid];
+			m_f_EvalBone2vtx_dist[fi].push_back(  TVtxDistInfo( i, dist, p, pos ) );
 
-			trgtMesh.GetDistToPoint(p, pos, dist);
-			m_f_Bone2vtx_dist[fi].push_back(  TVtxDistInfo( vid, dist, p, pos ) );
-
-			if( c >= 400) break;
-
-			if( c%100 == 0 ) fprintf( stderr, "%d/%d", c, m_Bone2_vID.size());
+			if( m_f_EvalBone2vtx_dist[fi].size()%1000 == 0 ) 
+			{
+				fprintf( stderr, "%d/%d", m_f_EvalBone2vtx_dist[fi].size(), m_evalSurf.getVnum());
+			}
 		}
+
+		delete[] nearestVid;
 		fprintf(stderr, "compute %d frame done!!\n", fi);
 	}
 

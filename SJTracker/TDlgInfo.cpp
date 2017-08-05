@@ -59,6 +59,8 @@ void TDlgInfo::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CHECK_REND_CPTRAJ, m_check_CpTrajectory);
 	DDX_Control(pDX, IDC_SPIN_CPTRAJ_IDX, m_spin_CpTrajIdx);
 	DDX_Control(pDX, IDC_CHECK_VIZ_SURF_DIFF, m_check_visSurfDiff);
+	DDX_Control(pDX, IDC_CHECK_EVALUATION_SURFTRANS, m_check_evalSurfTrans);
+	DDX_Control(pDX, IDC_CHECK_EVALUATION_SURFROT, m_check_evalSurfRot);
 }
 
 
@@ -96,6 +98,10 @@ ON_BN_CLICKED(IDC_CHECK_REND_CPTRAJ, &TDlgInfo::OnBnClickedCheckRendCptraj)
 ON_EN_CHANGE(IDC_EDIT_CPTRAJ_IDX, &TDlgInfo::OnEnChangeEditCptrajIdx)
 ON_BN_CLICKED(IDC_BUTTON_START_TRACKING_ONEFRAME, &TDlgInfo::OnBnClickedButtonStartTrackingOneframe)
 ON_BN_CLICKED(IDC_BUTTON_CALC_SURFACE_DIFF, &TDlgInfo::OnBnClickedButtonCalcSurfaceDiff)
+ON_BN_CLICKED(IDC_BUTTON_EVALUATION_LOADSURFACE, &TDlgInfo::OnBnClickedButtonEvaluationLoadsurface)
+ON_BN_CLICKED(IDC_BUTTON_EVALUATION_TRACKINGFORALL, &TDlgInfo::OnBnClickedButtonEvaluationTrackingforall)
+ON_BN_CLICKED(IDC_CHECK_EVALUATION_SURFTRANS, &TDlgInfo::OnBnClickedCheckEvaluationSurftrans)
+ON_BN_CLICKED(IDC_CHECK_EVALUATION_SURFROT, &TDlgInfo::OnBnClickedCheckEvaluationSurfrot)
 END_MESSAGE_MAP()
 
 
@@ -504,6 +510,9 @@ void TDlgInfo::OnBnClickedCheckCpDrag()
 	m_check_cp2_trans.SetCheck( 0 );
 	m_check_cp1_rot  .SetCheck( 0 );
 	m_check_cp2_rot  .SetCheck( 0 );
+	m_check_evalSurfTrans.SetCheck( 0 );
+	m_check_evalSurfRot  .SetCheck( 0 );
+
 	CSJTrackerView::getInst()->RedrawWindow();
 }
 
@@ -515,6 +524,9 @@ void TDlgInfo::OnBnClickedCheckCp1Transall()
 	m_check_cp2_trans.SetCheck( 0 );
 	m_check_cp1_rot  .SetCheck( 0 );
 	m_check_cp2_rot  .SetCheck( 0 );
+	m_check_evalSurfTrans.SetCheck( 0 );
+	m_check_evalSurfRot  .SetCheck( 0 );
+
 	CSJTrackerView::getInst()->RedrawWindow();
 }
 
@@ -526,6 +538,9 @@ void TDlgInfo::OnBnClickedCheckCp2Transall()
 	m_check_cp2_trans.SetCheck( 1 );
 	m_check_cp1_rot  .SetCheck( 0 );
 	m_check_cp2_rot  .SetCheck( 0 );
+	m_check_evalSurfTrans.SetCheck( 0 );
+	m_check_evalSurfRot  .SetCheck( 0 );
+
 	CSJTrackerView::getInst()->RedrawWindow();
 }
 
@@ -537,6 +552,9 @@ void TDlgInfo::OnBnClickedCheckCp1Rotall()
 	m_check_cp2_trans.SetCheck( 0 );
 	m_check_cp1_rot  .SetCheck( 1 );
 	m_check_cp2_rot  .SetCheck( 0 );
+	m_check_evalSurfTrans.SetCheck( 0 );
+	m_check_evalSurfRot  .SetCheck( 0 );
+
 	CSJTrackerView::getInst()->RedrawWindow();
 }
 
@@ -548,8 +566,43 @@ void TDlgInfo::OnBnClickedCheckCp2Rotall()
 	m_check_cp2_trans.SetCheck( 0 );
 	m_check_cp1_rot  .SetCheck( 0 );
 	m_check_cp2_rot  .SetCheck( 1 );
+	m_check_evalSurfTrans.SetCheck( 0 );
+	m_check_evalSurfRot  .SetCheck( 0 );
+
 	CSJTrackerView::getInst()->RedrawWindow();
 }
+
+
+void TDlgInfo::OnBnClickedCheckEvaluationSurftrans()
+{
+	
+	m_check_cp_drag  .SetCheck( 0 );
+	m_check_cp1_trans.SetCheck( 0 );
+	m_check_cp2_trans.SetCheck( 0 );
+	m_check_cp1_rot  .SetCheck( 0 );
+	m_check_cp2_rot  .SetCheck( 0 );
+	m_check_evalSurfTrans.SetCheck( 1 );
+	m_check_evalSurfRot  .SetCheck( 0 );
+
+	CSJTrackerView::getInst()->RedrawWindow();
+}
+
+
+void TDlgInfo::OnBnClickedCheckEvaluationSurfrot()
+{
+
+	m_check_cp_drag  .SetCheck( 0 );
+	m_check_cp1_trans.SetCheck( 0 );
+	m_check_cp2_trans.SetCheck( 0 );
+	m_check_cp1_rot  .SetCheck( 0 );
+	m_check_cp2_rot  .SetCheck( 0 );
+	m_check_evalSurfTrans.SetCheck( 0 );
+	m_check_evalSurfRot  .SetCheck( 1 );
+
+	CSJTrackerView::getInst()->RedrawWindow();
+}
+
+
 
 
 
@@ -568,6 +621,28 @@ void TDlgInfo::OnEnChangeEditCptrajIdx()
 
 void TDlgInfo::OnBnClickedButtonCalcSurfaceDiff()
 {
-	AnalysisManager::getInst()->ComputeMatchedSurfaceDiff();
+	AnalysisManager::getInst()->Evaluation_ComputeMachingDiff();
 	CSJTrackerView::getInst()->RedrawWindow();
 }
+
+
+void TDlgInfo::OnBnClickedButtonEvaluationLoadsurface()
+{
+
+	CFileDialog dlg(TRUE, NULL, NULL, OFN_HIDEREADONLY | OFN_CREATEPROMPT, "CP file  (*.obj)|*.obj||");
+	if( dlg.DoModal() != IDOK ) return;
+
+	AnalysisManager::getInst()->Evaluation_LoadObjFile(dlg.GetPathName());
+	CSJTrackerView::getInst()->RedrawWindow();
+}
+
+
+void TDlgInfo::OnBnClickedButtonEvaluationTrackingforall()
+{
+	int   numLv    = m_spin_ICPnumLv             .GetPos32();
+	float rejScale = (float)m_spin_ICPrejectScale.GetPos32();
+
+	AnalysisManager::getInst()->Evaluation_StartTracking(rejScale, numLv);
+	CSJTrackerView::getInst()->RedrawWindow();
+}
+
