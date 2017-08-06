@@ -1303,8 +1303,8 @@ void AnalysisManager::Evaluation_StartTracking(const float icpRejectScale, const
 		AfxMessageBox( "Iso surfaceが未作成です" );
         return;
     }
-
-	if( IDYES != AfxMessageBox("全フレームに対して剛体位置あわせを計算しますか？",MB_YESNO) ) return;
+		
+	AfxMessageBox("評価用: 全フレームに対して剛体位置あわせを計算します");
 
 	//src point cloud
 
@@ -1379,20 +1379,24 @@ void AnalysisManager::Evaluation_drawDiff(const int frameI)
 	glBegin( GL_POINTS );
 	for( auto it = vtxDiffInfo.begin(); it != vtxDiffInfo.end(); ++it)
 	{
-		glColor3d  ( 10 * it->m_dist, 0, 0 );
+		glColor3d  ( 0.5 * it->m_dist, 0, 0 );
 		glVertex3dv( it->m_pSrc.data );
 	}
 	glEnd();
 
-	glLineWidth(1);
-	glBegin( GL_LINES);
-	for( auto it = vtxDiffInfo.begin(); it != vtxDiffInfo.end(); ++it)
+	if (isShiftKeyOn())
 	{
-		glColor3d( 0, 1, 1 );
-		glVertex3dv( it->m_pSrc.data );
-		glVertex3dv( it->m_pTgt.data );
+		glLineWidth(1);
+		glBegin( GL_LINES);
+		for( auto it = vtxDiffInfo.begin(); it != vtxDiffInfo.end(); ++it)
+		{
+			glColor3d( 0, 1, 1 );
+			glVertex3dv( it->m_pSrc.data );
+			glVertex3dv( it->m_pTgt.data );
+		}
+		glEnd();
 	}
-	glEnd();
+
 }
 
 
@@ -1422,7 +1426,8 @@ static void getNearestVtxIdx
 	const int    srcN,
 	const TVec3 *srcVs,
 	const TMat16 srcTransM,
-	const int    tgtN,
+
+	const set<int> &tgtVtxIds, 
 	const TVec3 *tgtVs,
 
 	int *vidSrcToTgt // size:srcN
@@ -1433,14 +1438,14 @@ static void getNearestVtxIdx
 	vector<int> TgtIds[DIV_N][DIV_N][DIV_N];
 
 	//登録
-	for (int i = 0; i < tgtN; ++i)
+	for ( auto vi = tgtVtxIds.begin(); vi != tgtVtxIds.end(); ++vi)
 	{
 		//C[0] = 50.0, DIV_N = 4 のとき, [0,12.5] -> 0, [12.5,25.0]-->1 
-		int xi = (int) min( tgtVs[i][0] / cube[0] * DIV_N, DIV_N-1.0);  
-		int yi = (int) min( tgtVs[i][1] / cube[1] * DIV_N, DIV_N-1.0);  
-		int zi = (int) min( tgtVs[i][2] / cube[2] * DIV_N, DIV_N-1.0);  
+		int xi = (int) min( tgtVs[*vi][0] / cube[0] * DIV_N, DIV_N-1.0);  
+		int yi = (int) min( tgtVs[*vi][1] / cube[1] * DIV_N, DIV_N-1.0);  
+		int zi = (int) min( tgtVs[*vi][2] / cube[2] * DIV_N, DIV_N-1.0);  
 
-		TgtIds[zi][yi][xi].push_back(i);
+		TgtIds[zi][yi][xi].push_back(*vi);
 	}
 
 	//for (int i = 0; i < DIV_N; ++i)
@@ -1498,6 +1503,9 @@ void AnalysisManager::Evaluation_ComputeMachingDiff()
         return;
 	}
 
+	AfxMessageBox( "評価用：差分計算をします。surfaceのロードされていること\n、全フレームにて前腕骨がハイライトされていることを確認してください。" );
+
+
 	int W,H,D,F;
 	TVec3 pitch;
 	ImageManager::getInst()->getResolution(W,H,D,F);
@@ -1508,17 +1516,28 @@ void AnalysisManager::Evaluation_ComputeMachingDiff()
 	m_f_EvalBone2vtx_dist.clear();
 	m_f_EvalBone2vtx_dist.resize(fNum);
 
+	vector<double> meanDists;
 	for (int fi = 0; fi < fNum; ++fi)
 	{
 		fprintf(stderr, "Tod compute %d frame\n", fi);
 
 		const TMesh &trgtMesh = m_f_isoSurfs[fi].m_surf; 
+		const byte   *polyFlg = m_f_isoSurfs[fi].m_pFlg;
+		
+		//export only selected Area
+		set<int> tgtVtxIds; 
+		for (int pi = 0; pi < trgtMesh.getPnum(); ++pi) if (polyFlg[pi])
+		{
+			tgtVtxIds.insert( trgtMesh.m_polys[pi].idx[0] );
+			tgtVtxIds.insert( trgtMesh.m_polys[pi].idx[1] );
+			tgtVtxIds.insert( trgtMesh.m_polys[pi].idx[2] );
+		}
 
 		int *nearestVid = new int[m_evalSurf.getVnum()];
 		getNearestVtxIdx(cube, m_evalSurf.getVnum(), m_evalSurf.m_verts, m_f_EvalSurfTrans[fi],
-			                   trgtMesh.getVnum(), trgtMesh.m_verts, nearestVid);
+			                   tgtVtxIds, trgtMesh.m_verts, nearestVid);
 
-
+		double sumD = 0;
 		for (int i=0; i < m_evalSurf.getVnum(); ++i)
 		{
 			TVec3 p = m_f_EvalSurfTrans[fi] * m_evalSurf.m_verts[i];
@@ -1527,17 +1546,32 @@ void AnalysisManager::Evaluation_ComputeMachingDiff()
 			double dist;
 			trgtMesh.GetDistToPoint(p, nearestVid[i], pos, dist);
 
+			dist = t_Dist(p,pos);
 			m_f_EvalBone2vtx_dist[fi].push_back(  TVtxDistInfo( i, dist, p, pos ) );
 
 			if( m_f_EvalBone2vtx_dist[fi].size()%1000 == 0 ) 
 			{
 				fprintf( stderr, "%d/%d", m_f_EvalBone2vtx_dist[fi].size(), m_evalSurf.getVnum());
 			}
+
+			sumD += dist; 
 		}
+
+		meanDists.push_back( sumD / m_evalSurf.getVnum());
 
 		delete[] nearestVid;
 		fprintf(stderr, "compute %d frame done!!\n", fi);
 	}
 
+	
+	CFileDialog dlg(FALSE, NULL, NULL, OFN_HIDEREADONLY | OFN_CREATEPROMPT, "diff Data  (*.txt)|*.txt||");
+	if( dlg.DoModal() != IDOK ) return;
+
+	FILE *fp = fopen( dlg.GetPathName(), "w");
+
+	fprintf(fp, "dist data  vtx_num: %d  frame_Num: %d\n", m_evalSurf.getVnum(),  fNum);
+
+	for( int i=0; i < fNum; ++i) fprintf( fp, "%d %f\n", i, meanDists[i]);
+	fclose( fp );
 
 }

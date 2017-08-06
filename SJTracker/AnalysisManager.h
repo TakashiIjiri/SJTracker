@@ -197,12 +197,9 @@ class AnalysisManager
     vector< TPointSet> m_f_BoneCPs1  ;
     vector< TPointSet> m_f_BoneCPs2  ;
 
-	//領域2の (頂点ID/最近傍点距離) 
-	vector< TMat16   > m_f_EvalSurfTrans;
+	//evaluation用 field (2017/8/4追加)
+	vector< TMat16   >             m_f_EvalSurfTrans;
 	vector< vector<TVtxDistInfo> > m_f_EvalBone2vtx_dist;
-
-
-	//evaluation用のsurface model (2017/8/4追加)
 	TMesh m_evalSurf;
 
 
