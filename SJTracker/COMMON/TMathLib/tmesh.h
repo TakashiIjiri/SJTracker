@@ -352,6 +352,7 @@ public:
 	}
 
 	void GetDistToPoint( const TVec3 &p, TVec3 &posOnSurf, double &dist) const;
+	void GetDistToPoint( const TVec3 &p, const int nearestVid, TVec3 &posOnSurf, double &dist) const;
 };
 
 

@@ -197,8 +197,10 @@ class AnalysisManager
     vector< TPointSet> m_f_BoneCPs1  ;
     vector< TPointSet> m_f_BoneCPs2  ;
 
-	//領域2の (頂点ID/最近傍点距離) 
-	vector< vector<TVtxDistInfo> > m_f_Bone2vtx_dist;
+	//evaluation用 field (2017/8/4追加)
+	vector< TMat16   >             m_f_EvalSurfTrans;
+	vector< vector<TVtxDistInfo> > m_f_EvalBone2vtx_dist;
+	TMesh m_evalSurf;
 
 
 	AnalysisManager();
@@ -234,7 +236,6 @@ public:
     void drawRegistPt( const int frameI );
     void drawCutPlane( const int frameI );
     
-	void drawMatchedSurfDiff( const int frameI );
 	
 
 	//void drawRotAxis( const int frameI );
@@ -254,10 +255,21 @@ public:
 
 
 
+	//evaluation 
+	void Evaluation_LoadObjFile(const char* fname);
+	void Evaluation_drawSurf(const int frameI);
+	void Evaluation_drawDiff( const int frameI );
 
-	void ComputeMatchedSurfaceDiff();
+	void Evaluation_translate(int frameI, TVec3 t);
+	void Evaluation_rotation (int frameI, TMat9 R);
+	TVec3 evaluation_getSurfTrans(int frameI){
+		if( m_f_EvalSurfTrans.size() == 0 ) return TVec3();
+		else return m_f_EvalSurfTrans[frameI].GetTranslation();
+	}
 
+	void Evaluation_StartTracking(const float icpRejectScale, const int icpNumLv );
 
+	void Evaluation_ComputeMachingDiff();
 };
 
 

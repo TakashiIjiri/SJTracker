@@ -74,13 +74,13 @@ inline void t_verts_GetNearestPoint(const std::vector< TVec3 > &verts, const TVe
 }
 
 
-inline void t_verts_GetNearestPoint(const int vSize, const TVec3 *verts, const TVec3 &pos, int &idx, double &dist)
+inline void t_verts_GetNearestPoint(const int vSize, const TVec3 *verts, const TVec3 &pos, int &idx, double &dist_sq)
 {
-    dist = DBL_MAX;
+    dist_sq = DBL_MAX;
     idx  = -1;
     forN( i,vSize ){
         double d = t_DistSq( pos, verts[i] );
-        if( d < dist ) { dist = d; idx  = i;}
+        if( d < dist_sq ) { dist_sq = d; idx  = i;}
     }
 }
 

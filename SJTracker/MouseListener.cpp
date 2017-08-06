@@ -133,6 +133,8 @@ static void t_drawTransHandle(const TVec3 &gc)
 MouseListener::MouseListener()
 {
 	m_bL = m_bR = m_bM = m_bDrawStr = m_bDragCP = false;
+	m_bTransEvalSurf = m_bRotEvalSurf = false;
+
 	m_bTransAllCPs = 0;
 	m_bRotatAllCPs = 0;
 	m_rotHandleR.SetIdentity();
@@ -143,7 +145,6 @@ MouseListener::MouseListener()
 MouseListener::~MouseListener()
 {
 }
-
 
 
 void MouseListener::LButtonDown  (CPoint p)
@@ -173,6 +174,8 @@ void MouseListener::LButtonDown  (CPoint p)
 	{
 		m_bRotatAllCPs = true;
 	}
+	else if( dlg.m_check_evalSurfTrans.GetCheck() ) m_bTransEvalSurf = true;	
+	else if( dlg.m_check_evalSurfRot.GetCheck  () ) m_bRotEvalSurf   = true;
 	else if( AnalysisManager::getInst()->CPs_pick( frameI, rayP,rayD, m_DragCPboneId, m_DragCPidx ) )
 	{
 		m_bDragCP = true;
@@ -186,6 +189,8 @@ void MouseListener::LButtonDown  (CPoint p)
 void MouseListener::LButtonUp    (CPoint p)
 {
 	m_bL = m_bDragCP = m_bTransAllCPs = m_bRotatAllCPs = false;
+	m_bTransEvalSurf = m_bRotEvalSurf = false;
+
 	m_rotHandleR.SetIdentity();
 
 	if( m_bDrawStr && m_stroke.size() < 3)
@@ -301,7 +306,7 @@ void MouseListener::MouseMove    (CPoint p)
 			AnalysisManager::getInst()->CPs_move( frameI, m_DragCPboneId, m_DragCPidx, pos);
 		}
 	}
-	else if( m_bRotatAllCPs )
+	else if( m_bRotatAllCPs || m_bRotEvalSurf)
 	{
 		double dx = 0.007 * (p.x - m_prePoint.x);
 		double dy = 0.007 * (p.y - m_prePoint.y);
@@ -310,16 +315,24 @@ void MouseListener::MouseMove    (CPoint p)
 		TVec3 eyeU = CSJTrackerView::getInst()->m_ogl.GetCamUp ();
 		TVec3 xdir = ( (eyeC - eyeP) ^ eyeU ).Normalize();
 
-		int trgt = CSJTrackerView::getInst()->m_dlg.m_check_cp1_trans.GetCheck() ? 1 : 2;
-
 		TMat9 Rt, Rp;
 		Rt.Rotate( xdir, dy);
 		Rp.Rotate( eyeU, dx);
-		AnalysisManager::getInst()->CPs_rot( frameI, trgt, Rt*Rp);
 		m_rotHandleR = Rt*Rp * m_rotHandleR; 
 		m_prePoint = p;
+
+		if (m_bRotatAllCPs)
+		{
+			int trgt = CSJTrackerView::getInst()->m_dlg.m_check_cp1_trans.GetCheck() ? 1 : 2;
+			AnalysisManager::getInst()->CPs_rot( frameI, trgt, Rt*Rp);
+		}
+		else if (m_bRotEvalSurf)
+		{
+			AnalysisManager::getInst()->Evaluation_rotation(frameI, Rt*Rp);
+		}
+
 	}
-	else if( m_bTransAllCPs )
+	else if( m_bTransAllCPs || m_bTransEvalSurf)
 	{
 		double dx = 0.1 * (p.x - m_prePoint.x);
 		double dy =-0.1 * (p.y - m_prePoint.y);
@@ -327,11 +340,17 @@ void MouseListener::MouseMove    (CPoint p)
 		TVec3 eyeC = CSJTrackerView::getInst()->m_ogl.GetCamPiv();
 		TVec3 eyeU = CSJTrackerView::getInst()->m_ogl.GetCamUp ();
 		TVec3 xdir = ( (eyeC - eyeP) ^ eyeU ).Normalize();
-
-		int trgt = CSJTrackerView::getInst()->m_dlg.m_check_cp1_trans.GetCheck() ? 1 : 2;
-
-		AnalysisManager::getInst()->CPs_trans( frameI, trgt, xdir * dx + eyeU * dy);
+		
 		m_prePoint = p;
+		if (m_bTransAllCPs)
+		{
+			int trgt = CSJTrackerView::getInst()->m_dlg.m_check_cp1_trans.GetCheck() ? 1 : 2;
+			AnalysisManager::getInst()->CPs_trans( frameI, trgt, xdir * dx + eyeU * dy);
+		}
+		else if (m_bTransEvalSurf)
+		{
+			AnalysisManager::getInst()->Evaluation_translate(frameI, xdir * dx + eyeU * dy);
+		}
 	}
 	else
 		CSJTrackerView::getInst()->m_ogl.MouseMove( p );
@@ -381,6 +400,7 @@ void MouseListener::drawHandle()
 		TVec3 gc = AnalysisManager::getInst()->getGravCenterOfCPs(frameI, 2);
 		t_drawTransHandle( gc);
 	}
+
 	else if( CSJTrackerView::getInst()->m_dlg.m_check_cp1_rot.GetCheck() )
 	{
 		TVec3 gc = AnalysisManager::getInst()->getGravCenterOfCPs(frameI, 1);
@@ -390,6 +410,17 @@ void MouseListener::drawHandle()
 	{
 		TVec3 gc = AnalysisManager::getInst()->getGravCenterOfCPs(frameI, 2);
 		t_drawRotHandle( gc, m_rotHandleR);
+	}
+
+	else if( CSJTrackerView::getInst()->m_dlg.m_check_evalSurfTrans.GetCheck() )
+	{
+		TVec3 t = AnalysisManager::getInst()->evaluation_getSurfTrans(frameI);
+		t_drawTransHandle( t );
+	}
+	else if( CSJTrackerView::getInst()->m_dlg.m_check_evalSurfRot.GetCheck() )
+	{
+		TVec3 t = AnalysisManager::getInst()->evaluation_getSurfTrans(frameI);
+		t_drawRotHandle( t, m_rotHandleR);
 	}
 
 }

@@ -152,4 +152,10 @@ public:
 	afx_msg void OnBnClickedButtonStartTrackingOneframe();
 	CButton m_check_visSurfDiff;
 	afx_msg void OnBnClickedButtonCalcSurfaceDiff();
+	afx_msg void OnBnClickedButtonEvaluationLoadsurface();
+	afx_msg void OnBnClickedButtonEvaluationTrackingforall();
+	CButton m_check_evalSurfTrans;
+	CButton m_check_evalSurfRot;
+	afx_msg void OnBnClickedCheckEvaluationSurftrans();
+	afx_msg void OnBnClickedCheckEvaluationSurfrot();
 };

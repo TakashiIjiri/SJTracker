@@ -57,6 +57,9 @@ class MouseListener
 	int  m_DragCPidx     ;
 	int  m_DragCPboneId  ;
 
+	bool m_bTransEvalSurf;
+	bool m_bRotEvalSurf;
+
 	TMat9 m_rotHandleR   ;
 
 	vector<TVec3> m_stroke;
