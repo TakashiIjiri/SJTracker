@@ -5,7 +5,8 @@
 
 #include "SJTrackerView.h"
 
-//openCV
+
+//openCV----------------------------------------
 #include "opencv/cv.h"
 #include "opencv/highgui.h"
 #include "opencv2/surface_matching.hpp"
@@ -18,6 +19,7 @@ using namespace ppf_match_3d;
  
 #pragma comment(lib,"comctl32.lib")
 #pragma comment(lib,"vfw32.lib")    // Video for Windows
+//openCV----------------------------------------
 
 
 
@@ -1471,6 +1473,20 @@ static void getNearestVtxIdx
 		if( xi < DIV_N-1 ) searchNearestId( p, tgtVs, TgtIds[zi][yi][xi+1] , minDsq, minI);
 		if( yi < DIV_N-1 ) searchNearestId( p, tgtVs, TgtIds[zi][yi+1][xi] , minDsq, minI);
 		if( zi < DIV_N-1 ) searchNearestId( p, tgtVs, TgtIds[zi+1][yi][xi] , minDsq, minI);
+		
+		if (minI == -1)
+		{
+			printf( "searchAll- ");
+			for (auto vi = tgtVtxIds.begin(); vi != tgtVtxIds.end(); ++vi)
+			{
+				double d = t_DistSq( tgtVs[*vi], p);
+				if (d < minDsq)
+				{
+					minDsq = d;
+					minI = *vi;
+				}
+			}
+		}
 		vidSrcToTgt[i] = minI;
 
 		//fprintf( stderr, "%d  ", minI, minDsq);
