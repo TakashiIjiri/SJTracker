@@ -2271,7 +2271,7 @@ void TMesh::RemoveShortEdges_largeMesh( const int trgtVtxNum )
 
 
 
-
+/*
 void TMesh::GetDistToPoint(const  TVec3 &p, TVec3 &posOnSurf, double &dist) const
 {
 	//mesh形状がある程度均一であることを仮定し，近似的に最近傍点を計算する
@@ -2347,7 +2347,7 @@ void TMesh::GetDistToPoint(const  TVec3 &p, TVec3 &posOnSurf, double &dist) cons
 		}
 	}
 }
-
+*/
 
 
 void TMesh::GetDistToPoint(const  TVec3 &p, const int nearestVid, TVec3 &posOnSurf, double &dist) const
@@ -2358,6 +2358,12 @@ void TMesh::GetDistToPoint(const  TVec3 &p, const int nearestVid, TVec3 &posOnSu
 	this->GetRingVs(nearestVid, Vs);
 	this->GetRingPs(nearestVid, Ps);
 
+	if (Vs.size() == 0 && Ps.size() == 0)
+	{
+		fprintf( stderr, "strange input !!!!!!! %d\n", nearestVid);
+		m_verts[nearestVid].Trace();
+		fprintf( stderr, "strange input !!!!!!! %d\n", nearestVid);
+	}
 	for (auto it = Vs.begin(); it != Vs.end(); ++it)
 	{
 		//h = x0 + t d, (h-p)*d = 0
@@ -2420,4 +2426,19 @@ void TMesh::GetDistToPoint(const  TVec3 &p, const int nearestVid, TVec3 &posOnSu
 			}
 		}
 	}
+
+
+	if( dist == DBL_MAX )
+	{
+
+		fprintf( stderr, "\naaaaa\n");
+		for( auto i : Vs ) {
+			fprintf( stderr, "%d  -- \n", i);
+			m_verts[i].Trace();
+		
+		}
+	
+	
+	}
+
 }

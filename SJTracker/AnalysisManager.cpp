@@ -1422,6 +1422,9 @@ static void searchNearestId(
 	}
 }
 
+
+
+
 static void getNearestVtxIdx
 (
 	const TVec3  cube,
@@ -1429,7 +1432,7 @@ static void getNearestVtxIdx
 	const TVec3 *srcVs,
 	const TMat16 srcTransM,
 
-	const set<int> &tgtVtxIds, 
+	const int    tgtN,
 	const TVec3 *tgtVs,
 
 	int *vidSrcToTgt // size:srcN
@@ -1440,14 +1443,13 @@ static void getNearestVtxIdx
 	vector<int> TgtIds[DIV_N][DIV_N][DIV_N];
 
 	//登録
-	for ( auto vi = tgtVtxIds.begin(); vi != tgtVtxIds.end(); ++vi)
+	for( int i = 0; i < tgtN; ++i)
 	{
 		//C[0] = 50.0, DIV_N = 4 のとき, [0,12.5] -> 0, [12.5,25.0]-->1 
-		int xi = (int) min( tgtVs[*vi][0] / cube[0] * DIV_N, DIV_N-1.0);  
-		int yi = (int) min( tgtVs[*vi][1] / cube[1] * DIV_N, DIV_N-1.0);  
-		int zi = (int) min( tgtVs[*vi][2] / cube[2] * DIV_N, DIV_N-1.0);  
-
-		TgtIds[zi][yi][xi].push_back(*vi);
+		int xi = (int) min( tgtVs[i][0] / cube[0] * DIV_N, DIV_N-1.0);  
+		int yi = (int) min( tgtVs[i][1] / cube[1] * DIV_N, DIV_N-1.0);  
+		int zi = (int) min( tgtVs[i][2] / cube[2] * DIV_N, DIV_N-1.0);  
+		TgtIds[zi][yi][xi].push_back(i);
 	}
 
 	//for (int i = 0; i < DIV_N; ++i)
@@ -1477,13 +1479,14 @@ static void getNearestVtxIdx
 		if (minI == -1)
 		{
 			printf( "searchAll- ");
-			for (auto vi = tgtVtxIds.begin(); vi != tgtVtxIds.end(); ++vi)
+
+			for( int i = 0; i < tgtN; ++i)
 			{
-				double d = t_DistSq( tgtVs[*vi], p);
+				double d = t_DistSq( tgtVs[i], p);
 				if (d < minDsq)
 				{
 					minDsq = d;
-					minI = *vi;
+					minI = i;
 				}
 			}
 		}
@@ -1519,7 +1522,7 @@ void AnalysisManager::Evaluation_ComputeMachingDiff()
         return;
 	}
 
-	AfxMessageBox( "評価用：差分計算をします。surfaceのロードされていること\n、全フレームにて前腕骨がハイライトされていることを確認してください。" );
+	AfxMessageBox( "評価用：差分計算をします。surfaceがロードされ，\n位置あわせ済みであることを確認してください。" );
 
 
 	int W,H,D,F;
@@ -1535,23 +1538,13 @@ void AnalysisManager::Evaluation_ComputeMachingDiff()
 	vector<double> meanDists;
 	for (int fi = 0; fi < fNum; ++fi)
 	{
-		fprintf(stderr, "Tod compute %d frame\n", fi);
+		fprintf(stderr, "To compute %d frame\n", fi);
 
 		const TMesh &trgtMesh = m_f_isoSurfs[fi].m_surf; 
-		const byte   *polyFlg = m_f_isoSurfs[fi].m_pFlg;
 		
-		//export only selected Area
-		set<int> tgtVtxIds; 
-		for (int pi = 0; pi < trgtMesh.getPnum(); ++pi) if (polyFlg[pi])
-		{
-			tgtVtxIds.insert( trgtMesh.m_polys[pi].idx[0] );
-			tgtVtxIds.insert( trgtMesh.m_polys[pi].idx[1] );
-			tgtVtxIds.insert( trgtMesh.m_polys[pi].idx[2] );
-		}
-
 		int *nearestVid = new int[m_evalSurf.getVnum()];
 		getNearestVtxIdx(cube, m_evalSurf.getVnum(), m_evalSurf.m_verts, m_f_EvalSurfTrans[fi],
-			                   tgtVtxIds, trgtMesh.m_verts, nearestVid);
+			                     trgtMesh.getVnum(),   trgtMesh.m_verts, nearestVid);
 
 		double sumD = 0;
 		for (int i=0; i < m_evalSurf.getVnum(); ++i)
@@ -1559,7 +1552,7 @@ void AnalysisManager::Evaluation_ComputeMachingDiff()
 			TVec3 p = m_f_EvalSurfTrans[fi] * m_evalSurf.m_verts[i];
 
 			TVec3 pos;
-			double dist;
+			double dist;// = DBL_MAX;
 			trgtMesh.GetDistToPoint(p, nearestVid[i], pos, dist);
 
 			dist = t_Dist(p,pos);
@@ -1567,7 +1560,7 @@ void AnalysisManager::Evaluation_ComputeMachingDiff()
 
 			if( m_f_EvalBone2vtx_dist[fi].size()%1000 == 0 ) 
 			{
-				fprintf( stderr, "%d/%d", m_f_EvalBone2vtx_dist[fi].size(), m_evalSurf.getVnum());
+				fprintf( stderr, "%d:", m_f_EvalBone2vtx_dist[fi].size());
 			}
 
 			sumD += dist; 
